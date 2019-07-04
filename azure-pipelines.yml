@@ -1,0 +1,39 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'windows-2019'
+ 
+variables:
+  buildConfiguration: 'release'
+  projectName: 'Orleans.Patterns'
+  major: 1
+  minor: 0
+  patch: $[counter('myversioncounter', 0)]
+ 
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'Build .NET Core Projects'
+  inputs:
+    command: build
+    projects: '**/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Test .NET Core Projects'
+  inputs:
+    command: test
+    projects: 'Test.**/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+  env:
+    ENV_EVENT_SOURCING_AZURE_STORAGE: $(ENV_EVENT_SOURCING_AZURE_STORAGE)
+
+- task: DotNetCoreCLI@2
+  displayName: 'Pack Main .NET Core Project'
+  inputs:
+    command: pack
+    projects: $(projectName)/$(projectName).csproj
+    arguments: --configuration $(buildConfiguration) /p:PackageVersion=$(major).$(minor).$(patch) --output $(Build.ArtifactStagingDirectory) --no-build --no-restore 
+ 
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifacts'
