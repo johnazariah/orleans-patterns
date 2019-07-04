@@ -5,6 +5,13 @@
     <LangVersion>7.2</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageId>Orleans.Patterns</PackageId>
+    <Authors>johnazariah</Authors>
+    <Product>This library contains some useful patterns to use with the Microsoft Orleans framework.</Product>
+    <Description>This library currently contains the `TableRow` and `EventSourcing` grain patterns for use with Microsoft Orleans</Description>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Core" Version="2.3.5" />
     <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="2.3.5" />
