@@ -1,10 +1,11 @@
 ﻿using System;
 using Microsoft.Azure.Cosmos.Table;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Orleans;
 using Orleans.Hosting;
-using Orleans.Patterns.EventSourcing;
+using Test.Orleans.Patterns.EventSourcing;
 using Orleans.TestingHost;
 using Xunit;
 
@@ -14,8 +15,13 @@ namespace Orleans.Testing.Utilities
     {
         public ClusterFixture()
         {
-            var builder = new TestClusterBuilder();
+            var builder =
+                new TestClusterBuilder()
+                    .ConfigureHostConfiguration(configurationBuilder =>
+                        configurationBuilder.AddEnvironmentVariables());
+
             builder.AddSiloBuilderConfigurator<TestSiloConfigurations>();
+
             Cluster = builder.Build();
             Cluster.Deploy();
         }
@@ -37,13 +43,13 @@ namespace Orleans.Testing.Utilities
             Configuration = hostBuilder.GetConfiguration();
 
             hostBuilder
-            .AddMemoryGrainStorageAsDefault()
-            .UseLocalhostClustering()
-            .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
-            .ConfigureServices(services =>
-            {
-                services.AddSingleton(CloudTableFactory(Configuration));
-            });
+                .AddMemoryGrainStorageAsDefault()
+                .UseLocalhostClustering()
+                .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
+                .ConfigureServices(services =>
+                {
+                    services.AddSingleton(CloudTableFactory(Configuration));
+                });
         }
 
         private static Func<IServiceProvider, CloudTable> CloudTableFactory(IConfiguration configuration) =>
@@ -64,46 +70,3 @@ namespace Orleans.Testing.Utilities
         public const string Name = nameof(ClusterCollection);
     }
 }
-
-// namespace Tests
-// {
-//     public class HelloGrainTests
-//     {
-//         [Fact]
-//         public async Task SaysHelloCorrectly()
-//         {
-//             var cluster = new TestCluster();
-//             cluster.Deploy();
-
-//             var hello = cluster.GrainFactory.GetGrain<IHelloGrain>(Guid.NewGuid());
-//             var greeting = await hello.SayHello();
-
-//             cluster.StopAllSilos();
-
-//             Assert.Equal("Hello, World", greeting);
-//         }
-//     }
-// }
-
-// namespace Tests
-// {
-//     [Collection(ClusterCollection.Name)]
-//     public class HelloGrainTests
-//     {
-//         private readonly TestCluster _cluster;
-
-//         public HelloGrainTests(ClusterFixture fixture)
-//         {
-//             _cluster = fixture.Cluster;
-//         }
-
-//         [Fact]
-//         public async Task SaysHelloCorrectly()
-//         {
-//             var hello = _cluster.GrainFactory.GetGrain<IHelloGrain>(Guid.NewGuid());
-//             var greeting = await hello.SayHell();
-
-//             Assert.Equal("Hello, World", greeting);
-//         }
-//     }
-// }

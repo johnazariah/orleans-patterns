@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Orleans.Patterns.Utilities;
 
-namespace Orleans.Patterns.EventSourcing
+namespace Test.Orleans.Patterns.EventSourcing
 {
     public static partial class Extensions
     {
