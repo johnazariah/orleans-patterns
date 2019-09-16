@@ -4,7 +4,7 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-2019'
+  vmImage: 'windows-latest'
  
 variables:
   buildConfiguration: 'release'
@@ -15,10 +15,11 @@ variables:
  
 steps:
 - task: UseDotNet@2
-  displayName: 'Use .NET Core sdk'
+  displayName: 'Install .NET Core SDK'
   inputs:
     packageType: sdk
-    version: '3.0.100-preview9-014004'
+    version: '3.x'
+    includePreviewVersions: true
     installationPath: $(Agent.ToolsDirectory)/dotnet
 
 - task: DotNetCoreCLI@2
