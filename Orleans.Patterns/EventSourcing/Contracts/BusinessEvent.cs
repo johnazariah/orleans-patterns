@@ -9,20 +9,22 @@ namespace Orleans.Patterns.EventSourcing
     {
         public BusinessEvent() {}
 
-        public BusinessEvent(string payloadType, string payloadJson)
+        public BusinessEvent(int businessEventEnum, string payloadType, string payloadJson)
         {
+            BusinessEventEnum = businessEventEnum;
             EventIdentifier = Guid.NewGuid();
-            EventRaised = DateTime.UtcNow;
+            EventTimestamp = DateTime.UtcNow;
             PayloadType = payloadType;
             PayloadJson = payloadJson;
 
-            RowKey = EventIdentifier.ToString("D");
+            RowKey = EventTimestamp.Ticks.ToString();
         }
 
-        public Guid EventIdentifier { get; set; }
-        public DateTime EventRaised { get; set; }
-        public string PayloadType { get; set; }
-        public string PayloadJson { get; set; }
+        public int BusinessEventEnum         { get; set; }
+        public Guid EventIdentifier          { get; set; }
+        public DateTimeOffset EventTimestamp { get; set; }
+        public string PayloadType            { get; set; }
+        public string PayloadJson            { get; set; }
 
         public T GetValue<T>()
         {
@@ -36,10 +38,11 @@ namespace Orleans.Patterns.EventSourcing
     [Serializable]
     public sealed class BusinessEvent<T> : BusinessEvent
     {
-        public BusinessEvent(T payload)
+        public BusinessEvent(int businessEventEnum, T payload)
             : base(
-                payload.GetType().AssemblyQualifiedName,
-                JsonConvert.SerializeObject(payload))
+                  businessEventEnum,
+                  payload.GetType().AssemblyQualifiedName,
+                  JsonConvert.SerializeObject(payload))
         {
             Payload = payload;
         }
@@ -49,7 +52,7 @@ namespace Orleans.Patterns.EventSourcing
         public static BusinessEvent<T> Read(BusinessEvent raw)
         {
             var payload = JsonConvert.DeserializeObject<T>(raw.PayloadJson);
-            return new BusinessEvent<T>(payload);
+            return new BusinessEvent<T>(raw.BusinessEventEnum, payload);
         }
     }
 }

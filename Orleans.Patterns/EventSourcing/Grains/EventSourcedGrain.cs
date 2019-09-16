@@ -2,29 +2,30 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Orleans.Patterns.Utilities;
 
 namespace Orleans.Patterns.EventSourcing
 {
     public class EventSourcedGrain : Grain<EventSourcingContext>, IEventSourcedGrain
     {
-        private readonly ILogger Logger;
-        public EventSourcedGrain(CloudTable eventsTable, ILogger<EventSourcedGrain> logger)
+        public EventSourcedGrain(IConfiguration configuration, ILogger<EventSourcedGrain> logger)
         {
-            EventsTable = eventsTable;
+            EventsTable = configuration.EventsTable();
             Logger = logger;
         }
 
         public CloudTable EventsTable { get; }
 
-        public Task<CloudTable> GetEventsTable() => Task.FromResult(EventsTable);
+        protected ILogger Logger { get; }
 
-        public async Task<List<BusinessEvent>> GetEvents(DateTime? lastEventRaised = null)
+        public async Task<List<BusinessEvent>> GetEvents(DateTimeOffset? lastEventRaised = null)
         {
             var (events, _) = await EventsTable.FoldEventsAsync(
                 this.GetPrimaryKey(),
                 (result, curr) => { result.Add(curr); return result; },
-                new List<BusinessEvent>(),
+                () => new List<BusinessEvent>(),
                 lastEventRaised);
 
             return events;
@@ -40,15 +41,16 @@ namespace Orleans.Patterns.EventSourcing
             return aggregateGrain;
         }
 
-        public async Task RecordEventPayload<T>(T payload)
+        public async Task<BusinessEvent> RecordEventPayload<T>(int businessEventEnum, T payload)
         {
-            var e = new BusinessEvent<T>(payload)
+            var e = new BusinessEvent<T>(businessEventEnum, payload)
             {
                 PartitionKey = this.GetPrimaryKey().ToString("D"),
             };
 
             var tableOperation = TableOperation.Insert(e);
             await EventsTable.ExecuteAsync(tableOperation);
+            return e;
         }
     }
 }

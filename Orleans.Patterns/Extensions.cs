@@ -1,4 +1,5 @@
 using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -16,6 +17,29 @@ namespace Orleans.Patterns.Utilities
         public static TEnum EnumOrDefault<TEnum>(this string v, TEnum defaultValue) where TEnum : struct =>
             (Enum.TryParse<TEnum>(v, out var result)) ? result : defaultValue;
 
+    }
+
+    public static partial class Extensions
+    {
+        public static string EventStorageConnectionString(this IConfiguration _this) =>
+            _this["ENV_EVENT_SOURCING_AZURE_STORAGE"]
+                .StringOrDefault(
+                    _this["ENV_DEFAULT_EVENT_SOURCING_AZURE_STORAGE"]
+                    .StringOrDefault("UseDevelopmentStorage=true"));
+
+        public static string EventStorageTableName(this IConfiguration _this) =>
+            _this["ENV_EVENT_SOURCING_TABLE_NAME"]
+                .StringOrDefault("events");
+
+        public static CloudTable EventsTable(this IConfiguration _this)
+        {
+            var storageConnectionString = _this.EventStorageConnectionString();
+            var cloudStorageAccount = CloudStorageAccount.Parse(storageConnectionString);
+            var cloudTableClient = cloudStorageAccount.CreateCloudTableClient(new TableClientConfiguration());
+            var cloudTable = cloudTableClient.GetTableReference(_this.EventStorageTableName());
+            cloudTable.CreateIfNotExists();
+            return cloudTable;
+        }
     }
 
     public static partial class Extensions

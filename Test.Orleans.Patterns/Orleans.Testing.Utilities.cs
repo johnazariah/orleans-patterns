@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Orleans.Testing.Utilities
 {
-    public class ClusterFixture : IDisposable
+    public sealed class ClusterFixture : IDisposable
     {
         public ClusterFixture()
         {

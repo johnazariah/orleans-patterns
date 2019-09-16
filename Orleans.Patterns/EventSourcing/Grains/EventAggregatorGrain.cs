@@ -1,6 +1,8 @@
 ﻿using Microsoft.Azure.Cosmos.Table;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Orleans.Patterns.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -13,13 +15,13 @@ namespace Orleans.Patterns.EventSourcing
         public string PayloadType { get; set; }
         public string PayloadJson { get; set; }
         public Guid LastEvent { get; set; }
-        public DateTime? LastEventRaised { get; set; } = null;
+        public DateTimeOffset? LastEventTimestamp { get; set; } = null;
 
         public List<(BusinessEvent, Exception)> Failures { get; set; } = new List<(BusinessEvent, Exception)>();
 
         public void SetValue<T>(T payload)
         {
-            PayloadType = payload.GetType().AssemblyQualifiedName;
+            PayloadType = typeof(T).AssemblyQualifiedName;
             PayloadJson = JsonConvert.SerializeObject(payload);
         }
 
@@ -28,18 +30,20 @@ namespace Orleans.Patterns.EventSourcing
             try
             {
                 var payloadType = Type.GetType(PayloadType);
-                return (T)(JsonConvert.DeserializeObject(PayloadJson, payloadType));
+                return (T)JsonConvert.DeserializeObject(PayloadJson, payloadType);
             }
             catch
             {
-                return default(T);
+                return default;
             }
         }
     }
 
     public abstract class EventAggregatorGrain<T>: Grain<EventAggregatorState>, IEventAggregatorGrain
     {
-        private readonly ILogger Logger;
+        protected EventAggregatorGrain(IConfiguration configuration, ILogger<EventAggregatorGrain<T>> logger) :
+            this(configuration.EventsTable(), logger)
+        { }
 
         protected EventAggregatorGrain(CloudTable eventsTable, ILogger<EventAggregatorGrain<T>> logger)
         {
@@ -48,6 +52,7 @@ namespace Orleans.Patterns.EventSourcing
         }
 
         protected CloudTable EventsTable { get; }
+        protected ILogger Logger { get; }
 
         public virtual async Task RefreshState()
         {
@@ -55,18 +60,19 @@ namespace Orleans.Patterns.EventSourcing
                 await EventsTable.FoldEventsAsync(
                     this.GetPrimaryKey(),
                     ProcessEvent,
-                    (Guid.Empty, DateTime.MaxValue, State.GetValue<T>()),
-                    State.LastEventRaised);
+                    InitializeSeed(State.GetValue<T>()),
+                    State.LastEventTimestamp);
 
             State.LastEvent = latestEvent;
-            State.LastEventRaised = latestEventRaised;
+            State.LastEventTimestamp = latestEventRaised;
             State.Failures = failures;
             State.SetValue(value);
 
             await WriteStateAsync();
         }
 
-        protected abstract (Guid, DateTime, T) ProcessEvent((Guid, DateTime, T) seed, BusinessEvent curr);
+        protected abstract (Guid, DateTimeOffset, T) ProcessEvent((Guid, DateTimeOffset, T) seed, BusinessEvent curr);
+        protected abstract Func<(Guid, DateTimeOffset, T)> InitializeSeed(T seed);
 
         public virtual async Task<T> GetValue()
         {

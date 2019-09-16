@@ -2,7 +2,9 @@
 using Microsoft.Extensions.Logging;
 using Orleans.Patterns.EventSourcing;
 using System;
+using System.Diagnostics.Contracts;
 using Test.Orleans.Patterns.Contracts;
+using Test.Orleans.Patterns.EventSourcing;
 
 namespace Test.Orleans.Patterns.Grains
 {
@@ -11,19 +13,31 @@ namespace Test.Orleans.Patterns.Grains
     {
         public AddingAggregatorGrain(CloudTable eventsTable, ILogger<AddingAggregatorGrain> logger) : base(eventsTable, logger) { }
 
-        protected override (Guid, DateTime, Number) ProcessEvent((Guid, DateTime, Number) seed, BusinessEvent curr)
+        protected override Func<(Guid, DateTimeOffset, Number)> InitializeSeed(Number seed) =>
+            () => (Guid.Empty, DateTimeOffset.MinValue, seed ?? new Number(0.0));
+
+        protected override (Guid, DateTimeOffset, Number) ProcessEvent((Guid, DateTimeOffset, Number) seed, BusinessEvent curr)
         {
+            Contract.Requires(curr != null);
+
             var (seedId, seedTimestamp, seedPayload) = seed;
 
             var (id, timestamp) =
-                (curr.EventRaised > seedTimestamp)
-                ? (curr.EventIdentifier, curr.EventRaised)
+                (curr.EventTimestamp > seedTimestamp)
+                ? (curr.EventIdentifier, curr.EventTimestamp)
                 : (seedId, seedTimestamp);
 
-            var currPayload = curr.GetValue<Number>();
-            var value = new Number((seedPayload?.Value ?? 0) + (currPayload?.Value ?? 0));
+            switch (curr.BusinessEventEnum)
+            {
+                default:
+                case (int) NumberOperation.Add:
+                {
+                    var currPayload = curr.GetValue<Number>();
+                    var value = new Number((seedPayload?.Value ?? 0) + (currPayload?.Value ?? 0));
 
-            return (id, timestamp, value);
+                    return (id, timestamp, value);
+                }
+            }
         }
     }
 }

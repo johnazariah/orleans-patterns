@@ -1,0 +1,10 @@
+﻿[*.cs]
+
+# IDE0022: Use block body for methods
+csharp_style_expression_bodied_methods = false:none
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = none
+
+# IDE0021: Use block body for constructors
+csharp_style_expression_bodied_constructors = true:silent

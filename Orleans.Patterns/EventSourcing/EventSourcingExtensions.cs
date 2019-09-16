@@ -12,28 +12,28 @@ namespace Orleans.Patterns.EventSourcing
             this CloudTable EventsTable,
             Guid primaryKey,
             Func<TResult, BusinessEvent, TResult> accumulator,
-            TResult seed = default,
-            DateTime? lastEventRaised = null,
+            Func<TResult> seedInitializer,
+            DateTimeOffset? lastEventRaised = null,
             ILogger logger = null)
         {
-            DateTimeOffset cutOff = lastEventRaised ?? new DateTime(1601, 1, 1);
+            var cutOff = lastEventRaised ?? new DateTime(1601, 1, 1);
 
             logger?.LogInformation("EventSourcedGrain.FoldEventsAsync :: Filtering for events after {EventsAfter}", cutOff);
 
             var queryFilter =
                 TableQuery.CombineFilters(
                     TableQuery.GenerateFilterCondition(
-                        "PartitionKey", QueryComparisons.Equal, primaryKey.ToString("D")),
+                        nameof(BusinessEvent.PartitionKey), QueryComparisons.Equal, primaryKey.ToString("D")),
                     TableOperators.And,
-                    TableQuery.GenerateFilterConditionForDate(
-                        "EventRaised", QueryComparisons.GreaterThanOrEqual, cutOff));
+                    TableQuery.GenerateFilterCondition(
+                        nameof(BusinessEvent.RowKey), QueryComparisons.GreaterThan, cutOff.Ticks.ToString()));
 
             logger?.LogInformation("EventSourcedGrain.FoldEventsAsync :: Filter query {FilterQuery}", queryFilter);
 
-            var query = new TableQuery<BusinessEvent>().Where(queryFilter);
+            var query = new TableQuery<BusinessEvent>().Where(queryFilter).OrderBy(nameof(BusinessEvent.RowKey));
 
             var failures = new List<(BusinessEvent, Exception)>();
-            var result = seed;
+            var result = seedInitializer();
 
             TableContinuationToken token = null;
             do
