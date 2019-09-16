@@ -10,7 +10,7 @@ variables:
   buildConfiguration: 'release'
   projectName: 'Orleans.Patterns'
   major: 1
-  minor: 0
+  minor: 1
   patch: $[counter('myversioncounter', 0)]
  
 steps:
