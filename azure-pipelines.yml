@@ -14,6 +14,13 @@ variables:
   patch: $[counter('myversioncounter', 0)]
  
 steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk'
+  inputs:
+    packageType: sdk
+    version: '3.0.100-preview9-014004'
+    installationPath: $(Agent.ToolsDirectory)/dotnet
+
 - task: DotNetCoreCLI@2
   displayName: 'Build .NET Core Projects'
   inputs:
