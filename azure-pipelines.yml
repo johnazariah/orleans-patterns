@@ -42,8 +42,8 @@ steps:
   displayName: 'Pack Main .NET Core Project'
   inputs:
     command: pack
-    projects: $(projectName)/$(projectName).csproj
-    arguments: --configuration $(buildConfiguration) /p:PackageVersion=$(major).$(minor).$(patch) --output $(Build.ArtifactStagingDirectory) --no-build --no-restore 
+    projects: '$(projectName)/$(projectName).csproj'
+    arguments: '--configuration $(buildConfiguration) /p:PackageVersion=$(major).$(minor).$(patch) --output $(Build.ArtifactStagingDirectory) --no-build --no-restore'
  
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Build Artifacts'
