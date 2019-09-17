@@ -3,15 +3,15 @@
 trigger:
 - master
 
+#name: 1.0$(rev:.r)
+name: 1.0.2
+
 pool:
   vmImage: 'windows-latest'
  
 variables:
   buildConfiguration: 'release'
   projectName: 'Orleans.Patterns'
-  major: 1
-  minor: 1
-  patch: $[counter('myversioncounter', 0)]
  
 steps:
 - task: UseDotNet@2
@@ -41,9 +41,10 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: 'Pack Main .NET Core Project'
   inputs:
-    command: pack
-    projects: $(projectName)/$(projectName).csproj
-    arguments: --configuration $(buildConfiguration) /p:PackageVersion=$(major).$(minor).$(patch) --output $(Build.ArtifactStagingDirectory) --no-build --no-restore 
- 
+    command: 'pack'
+    packagesToPack: '$(projectName)/$(projectName).csproj'
+    nobuild: true
+    versioningScheme: 'byBuildNumber'
+
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Build Artifacts'
