@@ -4,7 +4,7 @@ trigger:
 - master
 
 #name: 1.0$(rev:.r)
-name: 1.0.2
+name: 1.0.3
 
 pool:
   vmImage: 'windows-latest'
